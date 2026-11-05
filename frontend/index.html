@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>اللغة المرئية الإلكترونية</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    body { background-color: #f0f4f8; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+    .card { background: white; padding: 35px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); width: 100%; max-width: 420px; text-align: center; }
+    h1 { color: #2c3e50; font-size: 22px; margin-bottom: 8px; }
+    p { color: #7f8c8d; font-size: 14px; margin-bottom: 25px; }
+    input, button { width: 100%; padding: 14px; margin-bottom: 15px; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 15px; outline: none; }
+    button { background-color: #3498db; color: white; border: none; font-weight: bold; cursor: pointer; transition: 0.3s; }
+    button:hover { background-color: #2980b9; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h1>منصة اللغة المرئية الإلكترونية</h1>
+    <p>بوابة أخصائيين وأولياء أمور مرضى التوحد</p>
+    
+    <form id="loginForm">
+      <input type="email" id="email" placeholder="البريد الإلكتروني" required>
+      <input type="password" id="password" placeholder="كلمة المرور" required>
+      <button type="submit">تسجيل الدخول</button>
+    </form>
+  </div>
+
+  <script>
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+        
+        if(data.success) {
+          alert(`أهلاً بك يا ${data.name}\nنوع الحساب: ${data.role}`);
+        } else {
+          alert(data.message);
+        }
+      } catch (err) {
+        alert('حدث خطأ في الاتصال بالسيرفر');
+      }
+    });
+  </script>
+</body>
+</html>
