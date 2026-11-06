@@ -22,14 +22,8 @@
     .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; background: white; padding: 20px 30px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
     .badge { background: #e8f4fc; color: #3498db; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; margin-right: 8px; }
 
-    /* تنبيهات داخلية في الصفحة */
     .app-alert {
-      display: none;
-      padding: 14px 20px;
-      border-radius: 10px;
-      margin-bottom: 20px;
-      font-weight: 700;
-      animation: fadeIn 0.3s ease-in-out;
+      display: none; padding: 14px 20px; border-radius: 10px; margin-bottom: 20px; font-weight: 700; animation: fadeIn 0.3s ease-in-out;
     }
     .app-alert.success { background: #2ecc71; color: white; }
     .app-alert.error { background: #e74c3c; color: white; }
@@ -53,51 +47,63 @@
 
   <div class="sidebar">
     <h3>منصة اللغة المرئية 🚀</h3>
-    <div class="nav-item active" onclick="switchTab('homeTab', this)">👤 المعلومات الشخصية</div>
-    <div class="nav-item" onclick="switchTab('studentsTab', this)">👥 إدارة الطلاب</div>
-    <div class="nav-item" id="requestsNav" style="display:none;" onclick="switchTab('requestsTab', this)">📩 طلبات إضافة الطلاب</div>
+    <div class="nav-item active" onclick="switchTab('homeTab', this)">👤 الملف الشخصي</div>
+    <div class="nav-item" id="studentsNav" onclick="switchTab('studentsTab', this)">👥 إدارة الطلاب</div>
+    <div class="nav-item" id="requestsNav" style="display:none;" onclick="switchTab('requestsTab', this)">📩 طلبات إعتماد الطلاب</div>
     <div class="nav-item" id="specsNav" style="display:none;" onclick="switchTab('specsTab', this)">👩‍⚕️ إدارة الأخصائيين</div>
     <a class="logout-btn" onclick="localStorage.clear(); window.location.href='index.html';">تسجيل الخروج</a>
   </div>
 
   <div class="main-content">
     <div class="header-bar">
-      <h2>لوحة التحكم الإدارية</h2>
+      <h2>لوحة التحكم</h2>
       <div>
         أهلاً بك، <span id="userName" style="font-weight:700;">-</span>
         <span class="badge" id="userRole">-</span>
       </div>
     </div>
 
-    <!-- بطاقة التنبيه الداخلية للبرنامج -->
     <div id="statusAlert" class="app-alert"></div>
 
-    <!-- تبويب 1: المعلومات الشخصية -->
+    <!-- تبويب 1: المعلومات الشخصية / متابعة الطالب -->
     <div id="homeTab" class="tab-content active">
       <div class="section-box">
-        <h3>👤 الملف الشخصي</h3>
+        <h3>👤 بيانات الحساب</h3>
         <p><strong>الاسم:</strong> <span id="infoName"></span></p>
         <p style="margin-top:10px;"><strong>البريد الإلكتروني:</strong> <span id="infoEmail"></span></p>
-        <p style="margin-top:10px;"><strong>الرتبة في النظام:</strong> <span id="infoRole"></span></p>
+        <p style="margin-top:10px;"><strong>الرتبة:</strong> <span id="infoRole"></span></p>
+      </div>
+
+      <div class="section-box" id="studentProgressBox" style="display:none;">
+        <h3>📈 التطور اللغوي والتقدم الدراسي للطالب</h3>
+        <p style="color:#7f8c8d; margin-top:10px;">أهلاً بك يا ولي الأمر! يمكنك متابعة الجلسات اللغوية والتقارير الدورية الخاصة بالطالب هنا.</p>
+        <div style="margin-top:15px; padding:15px; background:#e8f4fc; border-radius:10px; color:#2980b9;">
+          <strong>حالة الجلسات:</strong> الطالب مسجل ومستمر في برنامج اللغة المرئية بنجاح.
+        </div>
       </div>
     </div>
 
     <!-- تبويب 2: إدارة الطلاب -->
     <div id="studentsTab" class="tab-content">
-      <div class="section-box">
-        <h3 id="studentFormTitle">👥 إضافة طالب جديد</h3>
+      <div class="section-box" id="studentFormBox">
+        <h3 id="studentFormTitle">👥 إضافة طالب وإنشاء حساب لولي الأمر</h3>
         
         <form class="form-inline" id="studentForm">
-          <input type="text" id="studName" placeholder="اسم الطالب" required>
+          <input type="text" id="studName" placeholder="اسم الطالب الكامل" required>
           <input type="number" id="studAge" placeholder="العمر" required>
+          <input type="text" id="studPhone" placeholder="رقم الهاتف" required>
+          <input type="email" id="studEmail" placeholder="البريد الإلكتروني لولي الأمر" required>
+          <input type="password" id="studPass" placeholder="كلمة المرور للحساب" required>
           <select id="studSpecialist" style="display:none;"></select>
-          <button type="submit" class="btn-add" id="btnStudentSubmit">إضافة طالب</button>
+          <button type="submit" class="btn-add" id="btnStudentSubmit">إضافة الطالب وحسابه</button>
         </form>
+      </div>
 
-        <h3 style="margin-top: 25px;">📋 قائمة الطلاب</h3>
+      <div class="section-box">
+        <h3>📋 قائمة الطلاب المسجلين</h3>
         <table>
           <thead>
-            <tr><th>اسم الطالب</th><th>العمر</th><th>الأخصائي المسؤول</th></tr>
+            <tr><th>اسم الطالب</th><th>العمر</th><th>رقم الهاتف</th><th>الأخصائي المسؤول</th><th>الإجراء</th></tr>
           </thead>
           <tbody id="studentsTable"></tbody>
         </table>
@@ -107,10 +113,10 @@
     <!-- تبويب 3: طلبات الأدمن -->
     <div id="requestsTab" class="tab-content">
       <div class="section-box">
-        <h3>📩 طلبات إضافة الطلاب المعلقة</h3>
+        <h3>📩 طلبات إضافة الطلاب والمعتمدة من الأخصائيين</h3>
         <table>
           <thead>
-            <tr><th>اسم الطالب</th><th>العمر</th><th>الأخصائي المُرْسِل</th><th>الإجراء</th></tr>
+            <tr><th>اسم الطالب</th><th>العمر</th><th>الهاتف</th><th>البريد الإلكتروني المطلوب</th><th>الأخصائي المُرْسِل</th><th>الإجراء</th></tr>
           </thead>
           <tbody id="requestsTable"></tbody>
         </table>
@@ -145,22 +151,27 @@
     if (!user) window.location.href = 'index.html';
 
     document.getElementById('userName').innerText = user.name;
-    document.getElementById('userRole').innerText = user.role === 'admin' ? 'مدير النظام' : 'أخصائي';
+    let roleText = 'أخصائي';
+    if (user.role === 'admin') roleText = 'مدير النظام';
+    if (user.role === 'student') roleText = 'حساب طالب / ولي أمر';
+    document.getElementById('userRole').innerText = roleText;
 
     document.getElementById('infoName').innerText = user.name;
     document.getElementById('infoEmail').innerText = user.email;
-    document.getElementById('infoRole').innerText = user.role === 'admin' ? 'مدير النظام (الأدمن)' : 'أخصائي معتمد';
+    document.getElementById('infoRole').innerText = roleText;
 
-    if (user.role === 'admin') {
+    if (user.role === 'student') {
+      document.getElementById('studentsNav').style.display = 'none';
+      document.getElementById('studentProgressBox').style.display = 'block';
+    } else if (user.role === 'admin') {
       document.getElementById('requestsNav').style.display = 'flex';
       document.getElementById('specsNav').style.display = 'flex';
       document.getElementById('studSpecialist').style.display = 'block';
-      document.getElementById('btnStudentSubmit').innerText = 'إضافة طالب مباشرة';
+      document.getElementById('btnStudentSubmit').innerText = 'إضافة طالب وحسابه مباشرة';
     } else {
-      document.getElementById('btnStudentSubmit').innerText = 'إرسال طلب إضافة للأدمن';
+      document.getElementById('btnStudentSubmit').innerText = 'إرسال طلب إنشاء طالب للأدمن';
     }
 
-    // دالة التنبيهات الداخلية داخل واجهة البرنامج
     function showAlert(msg, isSuccess = true) {
       const alertBox = document.getElementById('statusAlert');
       alertBox.innerText = (isSuccess ? '✔️ ' : '❌ ') + msg;
@@ -177,6 +188,8 @@
     }
 
     async function loadData() {
+      if (user.role === 'student') return;
+
       // 1. الأخصائيين
       const resSpec = await fetch('/api/specialists');
       const specs = await resSpec.json();
@@ -209,7 +222,9 @@
           <tr>
             <td>${st.name}</td>
             <td>${st.age} سنة</td>
+            <td>${st.phone || 'غير مسجل'}</td>
             <td>${st.specialist_name || 'غير محدد'}</td>
+            <td><button class="btn-delete" onclick="deleteStudent(${st.id})">حذف الطالب</button></td>
           </tr>
         `;
       });
@@ -225,26 +240,31 @@
             <tr>
               <td>${r.student_name}</td>
               <td>${r.age} سنة</td>
+              <td>${r.phone || 'غير مسجل'}</td>
+              <td>${r.email}</td>
               <td>${r.specialist_name}</td>
-              <td><button class="btn-approve" onclick="approveStudent(${r.id})">قبول وإنشاء حساب</button></td>
+              <td><button class="btn-approve" onclick="approveStudent(${r.id})">قبول وإنشاء الحساب</button></td>
             </tr>
           `;
         });
       }
     }
 
-    // إضافة أو طلب طالب
+    // إضافة أو طلب طالب بحسابه المخصص
     document.getElementById('studentForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const name = document.getElementById('studName').value;
       const age = document.getElementById('studAge').value;
+      const phone = document.getElementById('studPhone').value;
+      const email = document.getElementById('studEmail').value;
+      const password = document.getElementById('studPass').value;
 
       if (user.role === 'admin') {
         const specialist_id = document.getElementById('studSpecialist').value || null;
         const res = await fetch('/api/students/direct', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ name, age, specialist_id })
+          body: JSON.stringify({ name, age, phone, email, password, specialist_id })
         });
         const data = await res.json();
         showAlert(data.message, data.success);
@@ -252,7 +272,7 @@
         const res = await fetch('/api/student-requests', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ student_name: name, age, specialist_id: user.id })
+          body: JSON.stringify({ student_name: name, age, phone, email, password, specialist_id: user.id })
         });
         const data = await res.json();
         showAlert(data.message, data.success);
@@ -262,12 +282,22 @@
       loadData();
     });
 
-    // قبول الطلب
+    // قبول طلب الطالب (الأدمن)
     async function approveStudent(id) {
       const res = await fetch(`/api/student-requests/${id}/approve`, { method: 'POST' });
       const data = await res.json();
       showAlert(data.message, data.success);
       loadData();
+    }
+
+    // حذف طالب (للأدمن والأخصائية)
+    async function deleteStudent(id) {
+      if (confirm('هل أنت تأكد من حذف هذا الطالب وحسابه بصفة نهائية؟')) {
+        const res = await fetch(`/api/students/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        showAlert(data.message, data.success);
+        loadData();
+      }
     }
 
     // إضافة أخصائي
@@ -289,10 +319,12 @@
 
     // طرد أخصائي
     async function deleteSpecialist(id) {
-      const res = await fetch(`/api/specialists/${id}`, { method: 'DELETE' });
-      const data = await res.json();
-      showAlert(data.message, data.success);
-      loadData();
+      if (confirm('هل أنت تأكد من طرد هذا الأخصائي؟')) {
+        const res = await fetch(`/api/specialists/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        showAlert(data.message, data.success);
+        loadData();
+      }
     }
 
     loadData();
