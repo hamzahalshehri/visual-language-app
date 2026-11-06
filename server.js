@@ -9,7 +9,6 @@ app.use(express.static(path.join(__dirname, 'frontend')));
 
 async function initDB() {
   try {
-    // 1. جدول المستخدمين
     await pool.query(`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
@@ -20,7 +19,6 @@ async function initDB() {
       );
     `);
 
-    // 2. جدول الطلاب
     await pool.query(`
       CREATE TABLE IF NOT EXISTS students (
         id SERIAL PRIMARY KEY,
@@ -31,7 +29,6 @@ async function initDB() {
       );
     `);
 
-    // 3. جدول طلبات إضافة الطلاب
     await pool.query(`
       CREATE TABLE IF NOT EXISTS student_requests (
         id SERIAL PRIMARY KEY,
@@ -42,7 +39,6 @@ async function initDB() {
       );
     `);
 
-    // الحسابات الأساسية
     await pool.query(`
       INSERT INTO users (name, email, password, role)
       VALUES ('حمزة الشهري', 'admin@example.com', '123456', 'admin')
@@ -55,15 +51,14 @@ async function initDB() {
       ON CONFLICT (email) DO NOTHING;
     `);
 
-    console.log('✅ تم تهيئة الجداول وحسابات النظام بنجاح!');
+    console.log('✅ تم تهيئة قاعدة البيانات بنجاح!');
   } catch (err) {
-    console.error('❌ خطأ في تهيئة قاعدة البيانات:', err.message);
+    console.error('❌ خطأ في التهيئة:', err.message);
   }
 }
 
 initDB();
 
-// تسجيل الدخول
 app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
   try {
@@ -81,7 +76,6 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// جلب جميع الأخصائيين
 app.get('/api/specialists', async (req, res) => {
   try {
     const result = await pool.query("SELECT id, name, email FROM users WHERE role = 'specialist'");
@@ -91,7 +85,6 @@ app.get('/api/specialists', async (req, res) => {
   }
 });
 
-// إضافة أخصائي (الأدمن)
 app.post('/api/specialists', async (req, res) => {
   const { name, email, password } = req.body;
   try {
@@ -99,13 +92,12 @@ app.post('/api/specialists', async (req, res) => {
       "INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, 'specialist') RETURNING id, name, email",
       [name, email, password]
     );
-    res.json({ success: true, specialist: result.rows[0] });
+    res.json({ success: true, message: 'تمت إضافة الأخصائي بنجاح' });
   } catch (err) {
     res.status(400).json({ success: false, message: 'البريد الإلكتروني مستخدم بالفعل' });
   }
 });
 
-// طرد أخصائي (الأدمن)
 app.delete('/api/specialists/:id', async (req, res) => {
   const { id } = req.params;
   try {
@@ -116,10 +108,10 @@ app.delete('/api/specialists/:id', async (req, res) => {
   }
 });
 
-// إضافة طالب مباشرة (الأدمن)
 app.post('/api/students/direct', async (req, res) => {
   const { name, age, specialist_id } = req.body;
   try {
+    const specId = specialist_id || null;
     const generatedEmail = `student_${Date.now()}@domain.com`;
     const userResult = await pool.query(
       "INSERT INTO users (name, email, password, role) VALUES ($1, $2, '123456', 'student') RETURNING id",
@@ -127,15 +119,15 @@ app.post('/api/students/direct', async (req, res) => {
     );
     await pool.query(
       'INSERT INTO students (name, age, specialist_id, user_id) VALUES ($1, $2, $3, $4)',
-      [name, age, specialist_id, userResult.rows[0].id]
+      [name, age, specId, userResult.rows[0].id]
     );
     res.json({ success: true, message: 'تم إضافة الطالب وحسابه بنجاح' });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ success: false, message: 'خطأ في إضافة الطالب' });
   }
 });
 
-// إرسال طلب طالب (الأخصائي)
 app.post('/api/student-requests', async (req, res) => {
   const { student_name, age, specialist_id } = req.body;
   try {
@@ -149,7 +141,6 @@ app.post('/api/student-requests', async (req, res) => {
   }
 });
 
-// جلب الطلبات المعلقة (الأدمن)
 app.get('/api/student-requests', async (req, res) => {
   try {
     const result = await pool.query(`
@@ -164,12 +155,11 @@ app.get('/api/student-requests', async (req, res) => {
   }
 });
 
-// موافقة الأدمن على الطالب
 app.post('/api/student-requests/:id/approve', async (req, res) => {
   const { id } = req.params;
   try {
     const reqData = await pool.query('SELECT * FROM student_requests WHERE id = $1', [id]);
-    if (reqData.rows.length === 0) return res.status(404).json({ message: 'الطلب غير موجود' });
+    if (reqData.rows.length === 0) return res.status(404).json({ success: false, message: 'الطلب غير موجود' });
 
     const { student_name, age, specialist_id } = reqData.rows[0];
     const generatedEmail = `student_${Date.now()}@domain.com`;
@@ -192,7 +182,6 @@ app.post('/api/student-requests/:id/approve', async (req, res) => {
   }
 });
 
-// جلب قائمة الطلاب
 app.get('/api/students', async (req, res) => {
   const { specialist_id } = req.query;
   try {
