@@ -20,7 +20,7 @@ async function initDB() {
       );
     `);
 
-    // 2. جدول الطلاب المعينين
+    // 2. جدول الطلاب
     await pool.query(`
       CREATE TABLE IF NOT EXISTS students (
         id SERIAL PRIMARY KEY,
@@ -31,7 +31,7 @@ async function initDB() {
       );
     `);
 
-    // 3. جدول طلبات إضافة الطلاب المعلقة
+    // 3. جدول طلبات إضافة الطلاب
     await pool.query(`
       CREATE TABLE IF NOT EXISTS student_requests (
         id SERIAL PRIMARY KEY,
@@ -42,7 +42,7 @@ async function initDB() {
       );
     `);
 
-    // حسابات التأسيس
+    // الحسابات الأساسية
     await pool.query(`
       INSERT INTO users (name, email, password, role)
       VALUES ('حمزة الشهري', 'admin@example.com', '123456', 'admin')
@@ -55,7 +55,7 @@ async function initDB() {
       ON CONFLICT (email) DO NOTHING;
     `);
 
-    console.log('✅ تم تهيئة الجداول ونظام الطلبات بنجاح!');
+    console.log('✅ تم تهيئة الجداول وحسابات النظام بنجاح!');
   } catch (err) {
     console.error('❌ خطأ في تهيئة قاعدة البيانات:', err.message);
   }
@@ -81,7 +81,7 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// جلب الأخصائيين
+// جلب جميع الأخصائيين
 app.get('/api/specialists', async (req, res) => {
   try {
     const result = await pool.query("SELECT id, name, email FROM users WHERE role = 'specialist'");
@@ -116,7 +116,26 @@ app.delete('/api/specialists/:id', async (req, res) => {
   }
 });
 
-// إنشاء طلب إضافة طالب من قِبل الأخصائي
+// إضافة طالب مباشرة (الأدمن)
+app.post('/api/students/direct', async (req, res) => {
+  const { name, age, specialist_id } = req.body;
+  try {
+    const generatedEmail = `student_${Date.now()}@domain.com`;
+    const userResult = await pool.query(
+      "INSERT INTO users (name, email, password, role) VALUES ($1, $2, '123456', 'student') RETURNING id",
+      [name, generatedEmail]
+    );
+    await pool.query(
+      'INSERT INTO students (name, age, specialist_id, user_id) VALUES ($1, $2, $3, $4)',
+      [name, age, specialist_id, userResult.rows[0].id]
+    );
+    res.json({ success: true, message: 'تم إضافة الطالب وحسابه بنجاح' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'خطأ في إضافة الطالب' });
+  }
+});
+
+// إرسال طلب طالب (الأخصائي)
 app.post('/api/student-requests', async (req, res) => {
   const { student_name, age, specialist_id } = req.body;
   try {
@@ -145,7 +164,7 @@ app.get('/api/student-requests', async (req, res) => {
   }
 });
 
-// موافقة الأدمن على الطالب وإنشاء حسابه
+// موافقة الأدمن على الطالب
 app.post('/api/student-requests/:id/approve', async (req, res) => {
   const { id } = req.params;
   try {
@@ -155,29 +174,25 @@ app.post('/api/student-requests/:id/approve', async (req, res) => {
     const { student_name, age, specialist_id } = reqData.rows[0];
     const generatedEmail = `student_${Date.now()}@domain.com`;
 
-    // 1. إنشاء حساب للطالب
     const userResult = await pool.query(
       "INSERT INTO users (name, email, password, role) VALUES ($1, $2, '123456', 'student') RETURNING id",
       [student_name, generatedEmail]
     );
 
-    // 2. ربط الطالب بالأخصائي
     await pool.query(
       'INSERT INTO students (name, age, specialist_id, user_id) VALUES ($1, $2, $3, $4)',
       [student_name, age, specialist_id, userResult.rows[0].id]
     );
 
-    // 3. تحديث حالة الطلب
     await pool.query("UPDATE student_requests SET status = 'approved' WHERE id = $1", [id]);
 
     res.json({ success: true, message: 'تمت الموافقة وإنشاء حساب الطالب بنجاح' });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ success: false, message: 'حدث خطأ أثناء الموافقة' });
   }
 });
 
-// جلب قائمة الطلاب المقبولين
+// جلب قائمة الطلاب
 app.get('/api/students', async (req, res) => {
   const { specialist_id } = req.query;
   try {
@@ -195,18 +210,6 @@ app.get('/api/students', async (req, res) => {
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ message: 'خطأ في جلب الطلاب' });
-  }
-});
-
-// تعديل أخصائي الطالب (الأدمن)
-app.put('/api/students/:id', async (req, res) => {
-  const { id } = req.params;
-  const { specialist_id } = req.body;
-  try {
-    await pool.query('UPDATE students SET specialist_id = $1 WHERE id = $2', [specialist_id, id]);
-    res.json({ success: true, message: 'تم تعديل أخصائي الطالب بنجاح' });
-  } catch (err) {
-    res.status(500).json({ success: false, message: 'خطأ في التعديل' });
   }
 });
 

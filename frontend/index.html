@@ -14,11 +14,12 @@
     .card {
       background: #ffffff; padding: 40px 30px; border-radius: 20px;
       box-shadow: 0 15px 35px rgba(0,0,0,0.1); width: 100%; max-width: 420px; text-align: center;
+      position: relative;
     }
     .logo-icon { font-size: 50px; margin-bottom: 10px; }
     h2 { color: #2c3e50; font-weight: 700; font-size: 1.6rem; margin-bottom: 8px; }
-    p.subtitle { color: #7f8c8d; font-size: 0.95rem; margin-bottom: 30px; }
-    .form-group { margin-bottom: 20px; text-align: right; }
+    p.subtitle { color: #7f8c8d; font-size: 0.95rem; margin-bottom: 25px; }
+    .form-group { margin-bottom: 18px; text-align: right; }
     label { display: block; margin-bottom: 8px; color: #34495e; font-weight: 500; font-size: 0.9rem; }
     input {
       width: 100%; padding: 14px 16px; border: 2px solid #e0e6ed;
@@ -29,14 +30,50 @@
       width: 100%; padding: 14px; background: linear-gradient(135deg, #3498db, #2980b9);
       color: white; border: none; border-radius: 12px; font-size: 1rem; font-weight: 700; cursor: pointer;
     }
-    .footer-text { margin-top: 25px; font-size: 0.85rem; color: #95a5a6; }
+    
+    /* بطاقة الإشعار الناجح داخل التطبيق */
+    .toast-success {
+      display: none;
+      background: #2ecc71;
+      color: white;
+      padding: 15px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      font-weight: 700;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      animation: fadeIn 0.4s ease-in-out;
+    }
+    .toast-error {
+      display: none;
+      background: #e74c3c;
+      color: white;
+      padding: 12px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      font-size: 0.9rem;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
   </style>
 </head>
 <body>
+
   <div class="card">
     <div class="logo-icon">🗣️</div>
     <h2>منصة اللغة المرئية</h2>
     <p class="subtitle">بوابة الأخصائيين وأولياء الأمور فقط</p>
+
+    <!-- إشعار الترحيب الأخضر بالصح داخل الواجهة -->
+    <div class="toast-success" id="toastSuccess">
+      <span style="font-size: 1.4rem;">✔️</span>
+      <span id="toastText">أهلاً بك! تم تسجيل الدخول بنجاح</span>
+    </div>
+
+    <div class="toast-error" id="toastError"></div>
 
     <form id="loginForm">
       <div class="form-group">
@@ -49,7 +86,6 @@
       </div>
       <button type="submit">تسجيل الدخول</button>
     </form>
-    <div class="footer-text">جميع الحقوق محفوظة © منصة اللغة المرئية</div>
   </div>
 
   <script>
@@ -57,6 +93,10 @@
       e.preventDefault();
       const email = document.querySelectorAll('input')[0].value;
       const password = document.querySelectorAll('input')[1].value;
+      
+      const toastSuccess = document.getElementById('toastSuccess');
+      const toastError = document.getElementById('toastError');
+      toastError.style.display = 'none';
 
       try {
         const res = await fetch('/api/login', {
@@ -65,15 +105,25 @@
           body: JSON.stringify({ email, password })
         });
         const data = await res.json();
+
         if (data.success) {
           localStorage.setItem('user', JSON.stringify(data.user));
-          alert(`أهلاً بك يا ${data.user.name}! تم تسجيل الدخول بنجاح.`);
-          window.location.href = 'dashboard.html';
+          
+          // إظهار البطاقة الخضراء الفخمة داخل الصفحة
+          document.getElementById('toastText').innerText = `أهلاً بك يا ${data.user.name}! تم تسجيل الدخول بنجاح.`;
+          toastSuccess.style.display = 'flex';
+
+          setTimeout(() => {
+            window.location.href = 'dashboard.html';
+          }, 1200);
+
         } else {
-          alert(data.message);
+          toastError.innerText = data.message;
+          toastError.style.display = 'block';
         }
       } catch (err) {
-        alert('حدث خطأ في الاتصال بالسيرفر');
+        toastError.innerText = 'حدث خطأ في الاتصال بالسيرفر';
+        toastError.style.display = 'block';
       }
     });
   </script>
