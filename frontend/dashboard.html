@@ -40,6 +40,33 @@
     th { background: #f8f9fa; color: #7f8c8d; }
     .tab-content { display: none; }
     .tab-content.active { display: block; }
+    
+    /* نافذة التأكيد الخاصة داخل الواجهة */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      animation: fadeIn 0.2s ease-in-out;
+    }
+    .modal-card {
+      background: white;
+      padding: 30px;
+      border-radius: 16px;
+      max-width: 400px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    }
+    .modal-card h4 { font-size: 1.2rem; color: #2c3e50; margin-bottom: 12px; }
+    .modal-card p { color: #7f8c8d; font-size: 0.95rem; margin-bottom: 25px; }
+    .modal-actions { display: flex; gap: 10px; justify-content: center; }
+    .btn-confirm { background: #e74c3c; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 700; }
+    .btn-cancel { background: #bdc3c7; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 700; }
+
     @keyframes fadeIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
   </style>
 </head>
@@ -65,7 +92,7 @@
 
     <div id="statusAlert" class="app-alert"></div>
 
-    <!-- تبويب 1: المعلومات الشخصية / متابعة الطالب -->
+    <!-- تبويب 1: المعلومات الشخصية -->
     <div id="homeTab" class="tab-content active">
       <div class="section-box">
         <h3>👤 بيانات الحساب</h3>
@@ -146,6 +173,18 @@
 
   </div>
 
+  <!-- نافذة التأكيد المصممة داخل المنصة -->
+  <div class="modal-overlay" id="confirmModal">
+    <div class="modal-card">
+      <h4 id="modalTitle">تأكيد الإجراء</h4>
+      <p id="modalDesc">هل أنت تأكد من إتمام هذا الإجراء؟</p>
+      <div class="modal-actions">
+        <button class="btn-confirm" id="btnModalConfirm">تأكيد</button>
+        <button class="btn-cancel" onclick="closeConfirmModal()">إلغاء</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const user = JSON.parse(localStorage.getItem('user'));
     if (!user) window.location.href = 'index.html';
@@ -179,6 +218,24 @@
       alertBox.style.display = 'block';
       setTimeout(() => { alertBox.style.display = 'none'; }, 3500);
     }
+
+    let pendingAction = null;
+    function openConfirmModal(title, desc, onConfirm) {
+      document.getElementById('modalTitle').innerText = title;
+      document.getElementById('modalDesc').innerText = desc;
+      pendingAction = onConfirm;
+      document.getElementById('confirmModal').style.display = 'flex';
+    }
+
+    function closeConfirmModal() {
+      document.getElementById('confirmModal').style.display = 'none';
+      pendingAction = null;
+    }
+
+    document.getElementById('btnModalConfirm').addEventListener('click', () => {
+      if (pendingAction) pendingAction();
+      closeConfirmModal();
+    });
 
     function switchTab(tabId, element) {
       document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
@@ -250,7 +307,7 @@
       }
     }
 
-    // إضافة أو طلب طالب بحسابه المخصص
+    // إضافة أو طلب طالب
     document.getElementById('studentForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const name = document.getElementById('studName').value;
@@ -282,7 +339,7 @@
       loadData();
     });
 
-    // قبول طلب الطالب (الأدمن)
+    // قبول طلب الطالب
     async function approveStudent(id) {
       const res = await fetch(`/api/student-requests/${id}/approve`, { method: 'POST' });
       const data = await res.json();
@@ -290,41 +347,32 @@
       loadData();
     }
 
-    // حذف طالب (للأدمن والأخصائية)
-    async function deleteStudent(id) {
-      if (confirm('هل أنت تأكد من حذف هذا الطالب وحسابه بصفة نهائية؟')) {
-        const res = await fetch(`/api/students/${id}`, { method: 'DELETE' });
-        const data = await res.json();
-        showAlert(data.message, data.success);
-        loadData();
-      }
+    // حذف طالب بطريقة منبثقة من الواجهة
+    function deleteStudent(id) {
+      openConfirmModal(
+        'حذف الطالب',
+        'هل أنت تأكد من حذف هذا الطالب وحسابه بصفة نهائية؟',
+        async () => {
+          const res = await fetch(`/api/students/${id}`, { method: 'DELETE' });
+          const data = await res.json();
+          showAlert(data.message, data.success);
+          loadData();
+        }
+      );
     }
 
-    // إضافة أخصائي
-    document.getElementById('addSpecialistForm')?.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const name = document.getElementById('specName').value;
-      const email = document.getElementById('specEmail').value;
-      const password = document.getElementById('specPass').value;
-
-      const res = await fetch('/api/specialists', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ name, email, password })
-      });
-      const data = await res.json();
-      showAlert(data.message, data.success);
-      if(data.success) { e.target.reset(); loadData(); }
-    });
-
-    // طرد أخصائي
-    async function deleteSpecialist(id) {
-      if (confirm('هل أنت تأكد من طرد هذا الأخصائي؟')) {
-        const res = await fetch(`/api/specialists/${id}`, { method: 'DELETE' });
-        const data = await res.json();
-        showAlert(data.message, data.success);
-        loadData();
-      }
+    // طرد أخصائي بطريقة منبثقة من الواجهة
+    function deleteSpecialist(id) {
+      openConfirmModal(
+        'طرد الأخصائي',
+        'هل أنت تأكد من طرد هذا الأخصائي من النظام؟',
+        async () => {
+          const res = await fetch(`/api/specialists/${id}`, { method: 'DELETE' });
+          const data = await res.json();
+          showAlert(data.message, data.success);
+          loadData();
+        }
+      );
     }
 
     loadData();
