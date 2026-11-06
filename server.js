@@ -108,36 +108,42 @@ app.delete('/api/specialists/:id', async (req, res) => {
   }
 });
 
+// إضافة طالب مباشرة للحقيبة الإدارية
 app.post('/api/students/direct', async (req, res) => {
   const { name, age, specialist_id } = req.body;
   try {
-    const specId = specialist_id || null;
+    const specId = (specialist_id && specialist_id !== '') ? parseInt(specialist_id) : null;
     const generatedEmail = `student_${Date.now()}@domain.com`;
+    
     const userResult = await pool.query(
       "INSERT INTO users (name, email, password, role) VALUES ($1, $2, '123456', 'student') RETURNING id",
       [name, generatedEmail]
     );
+    
     await pool.query(
       'INSERT INTO students (name, age, specialist_id, user_id) VALUES ($1, $2, $3, $4)',
-      [name, age, specId, userResult.rows[0].id]
+      [name, parseInt(age), specId, userResult.rows[0].id]
     );
+    
     res.json({ success: true, message: 'تم إضافة الطالب وحسابه بنجاح' });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, message: 'خطأ في إضافة الطالب' });
+    console.error('Direct Student Add Error:', err);
+    res.status(500).json({ success: false, message: 'حدث خطأ في إضافة الطالب: ' + err.message });
   }
 });
 
+// إرسال طلب إضافة من الأخصائي
 app.post('/api/student-requests', async (req, res) => {
   const { student_name, age, specialist_id } = req.body;
   try {
     await pool.query(
       'INSERT INTO student_requests (student_name, age, specialist_id) VALUES ($1, $2, $3)',
-      [student_name, age, specialist_id]
+      [student_name, parseInt(age), parseInt(specialist_id)]
     );
     res.json({ success: true, message: 'تم إرسال الطلب إلى الأدمن للموافقة' });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'خطأ في إرسال الطلب' });
+    console.error('Student Request Error:', err);
+    res.status(500).json({ success: false, message: 'حدث خطأ في إرسال الطلب' });
   }
 });
 
