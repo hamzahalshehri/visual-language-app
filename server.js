@@ -127,7 +127,6 @@ app.post('/api/login', async (req, res) => {
     res.status(500).json({ success: false, message: 'حدث خطأ في الخادم' });
   }
 });
-
 // --- 2. خدمات الذكاء الاصطناعي (Gemini AI Chatbot & Reports) ---
 
 // أ) الشات بوت والرد الآلي الذكي

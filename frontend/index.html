@@ -26,7 +26,7 @@
   <div class="card">
     <div class="logo-icon">🗣️</div>
     <h2>منصة اللغة المرئية</h2>
-    <p class="subtitle">بوابة المؤسسات والأخصائيين وأولياء الأمور</p>
+    <p class="subtitle">بوابة الأخصائيين وأولياء الأمور فقط</p>
 
     <div class="toast-success" id="toastSuccess">
       <span>✔️</span> <span id="toastText">تم تسجيل الدخول بنجاح</span>
@@ -35,25 +35,20 @@
 
     <form id="loginForm">
       <div class="form-group">
-        <label>كود المؤسسة</label>
-        <input type="text" id="orgCode" placeholder="مثال: org1" required>
-      </div>
-      <div class="form-group">
         <label>البريد الإلكتروني</label>
-        <input type="email" id="email" placeholder="example@domain.com" required>
+        <input type="email" id="email" placeholder="admin@example.com" required>
       </div>
       <div class="form-group">
         <label>كلمة المرور</label>
         <input type="password" id="password" placeholder="••••••••" required>
       </div>
-      <button type="submit">تسجيل الدخول للمؤسسة</button>
+      <button type="submit">تسجيل الدخول</button>
     </form>
   </div>
 
   <script>
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const org_code = document.getElementById('orgCode').value;
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
       
@@ -65,13 +60,13 @@
         const res = await fetch('/api/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ org_code, email, password })
+          body: JSON.stringify({ email, password })
         });
         const data = await res.json();
 
         if (data.success) {
           localStorage.setItem('user', JSON.stringify(data.user));
-          document.getElementById('toastText').innerText = `أهلاً بك في (${data.user.org_name}) يا ${data.user.name}!`;
+          document.getElementById('toastText').innerText = `أهلاً بك يا ${data.user.name}! تم تسجيل الدخول بنجاح.`;
           toastSuccess.style.display = 'flex';
 
           setTimeout(() => { window.location.href = 'dashboard.html'; }, 1200);
