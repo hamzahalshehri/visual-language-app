@@ -9,7 +9,6 @@
     * { box-sizing: border-box; font-family: 'Tajawal', sans-serif; margin: 0; padding: 0; }
     body { background-color: #f4f7f6; display: flex; min-height: 100vh; position: relative; }
     
-    /* القائمة الجانبية اليمنى */
     .sidebar { width: 260px; background: #2c3e50; color: white; padding: 25px 15px; display: flex; flex-direction: column; }
     .sidebar h3 { font-size: 1.1rem; margin-bottom: 25px; color: #3498db; text-align: center; }
     .nav-item {
@@ -19,12 +18,10 @@
     .nav-item:hover, .nav-item.active { background: #34495e; color: #3498db; }
     .logout-btn { margin-top: auto; background: #e74c3c; color: white; text-align: center; padding: 12px; border-radius: 8px; text-decoration: none; font-weight: 700; cursor: pointer; }
 
-    /* المنطقة الرئيسية */
     .main-content { flex: 1; padding: 30px; }
     .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; background: white; padding: 20px 30px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
     .badge { background: #e8f4fc; color: #3498db; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; margin-right: 8px; }
 
-    /* التنبيهات الداخلية داخل المنصة */
     .app-alert {
       display: none; padding: 14px 20px; border-radius: 10px; margin-bottom: 20px; font-weight: 700; animation: fadeIn 0.3s ease-in-out;
     }
@@ -44,7 +41,6 @@
     .tab-content { display: none; }
     .tab-content.active { display: block; }
     
-    /* نافذة التثبت وتأكيد الحذف الداخلية */
     .modal-overlay {
       display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(0, 0, 0, 0.5); justify-content: center; align-items: center; z-index: 1000; animation: fadeIn 0.2s ease-in-out;
@@ -61,7 +57,6 @@
 </head>
 <body>
 
-  <!-- القائمة الجانبية -->
   <div class="sidebar">
     <h3>منصة اللغة المرئية 🚀</h3>
     <div class="nav-item active" onclick="switchTab('homeTab', this)">👤 الملف الشخصي</div>
@@ -80,7 +75,6 @@
       </div>
     </div>
 
-    <!-- شريط الإشعارات والرسائل النصية الداخلية -->
     <div id="statusAlert" class="app-alert"></div>
 
     <!-- تبويب 1: الملف الشخصي -->
@@ -89,8 +83,34 @@
         <h3>👤 بيانات الحساب</h3>
         <p><strong>الاسم:</strong> <span id="infoName"></span></p>
         <p style="margin-top:10px;"><strong>البريد الإلكتروني:</strong> <span id="infoEmail"></span></p>
-        <p style="margin-top:10px;"><strong>المؤسسة التابع لها:</strong> <span id="infoOrg"></span></p>
         <p style="margin-top:10px;"><strong>الرتبة في النظام:</strong> <span id="infoRole"></span></p>
+      </div>
+
+      <!-- قسم الذكاء الاصطناعي (Gemini AI) -->
+      <div class="section-box">
+        <h3>🤖 المساعد الذكي وتقارير الذكاء الاصطناعي (Gemini AI)</h3>
+        
+        <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+          <!-- الشات بوت -->
+          <div style="flex: 1; min-width: 280px; background: #f8f9fa; padding: 20px; border-radius: 12px;">
+            <h4>💬 الرد الآلي والمساعد اللغوي</h4>
+            <div id="chatHistory" style="height: 160px; overflow-y: auto; background: white; padding: 10px; border-radius: 8px; margin: 10px 0; border: 1px solid #ddd; font-size: 0.9rem;">
+              <p style="color: #7f8c8d;">مرحباً! أنا المساعد الذكي للمنصة، كيف أستطيع مساعدتك اليوم؟</p>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <input type="text" id="chatInput" placeholder="اسأل المساعد الذكي..." style="flex:1; padding: 10px; border-radius: 8px; border: 1px solid #ccc; outline:none;">
+              <button onclick="sendAiMessage()" style="background: #3498db; color: white; border: none; padding: 10px 18px; border-radius: 8px; cursor: pointer; font-weight:700;">إرسال</button>
+            </div>
+          </div>
+
+          <!-- توليد التقارير -->
+          <div style="flex: 1; min-width: 280px; background: #f8f9fa; padding: 20px; border-radius: 12px;">
+            <h4>📝 توليد تقرير التطور اللغوي</h4>
+            <p style="font-size: 0.85rem; color: #7f8c8d; margin-bottom: 15px;">انقر لتوليد تقرير تقييم تفاعلي ولغوي تلقائياً للطلاب عبر الذكاء الاصطناعي.</p>
+            <button onclick="generateAiReport()" style="background: #9b59b6; color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: 700;">توليد التقرير بالذكاء الاصطناعي ✨</button>
+            <div id="reportOutput" style="margin-top: 15px; background: white; padding: 12px; border-radius: 8px; border: 1px solid #ddd; font-size: 0.9rem; display: none; white-space: pre-wrap; max-height: 180px; overflow-y: auto;"></div>
+          </div>
+        </div>
       </div>
 
       <div class="section-box" id="studentProgressBox" style="display:none;">
@@ -135,7 +155,7 @@
         <h3>📩 طلبات إضافة الطلاب والمعتمدة من الأخصائيين</h3>
         <table>
           <thead>
-            <tr><th>اسم الطالب</th><th>العمر</th><th>الهاتف</th><th>الأخصائي المُرْسِل</th><th>الإجراء</th></tr>
+            <tr><th>اسم الطالب</th><th>العمر</th><th>الهاتف</th><th>البريد المطلوب</th><th>الأخصائي المُرْسِل</th><th>الإجراء</th></tr>
           </thead>
           <tbody id="requestsTable"></tbody>
         </table>
@@ -145,7 +165,7 @@
     <!-- تبويب 4: إدارة الأخصائيين (الأدمن) -->
     <div id="specsTab" class="tab-content">
       <div class="section-box">
-        <h3>👩‍⚕️ إضافة أخصائي جديد للمؤسسة</h3>
+        <h3>👩‍⚕️ إضافة أخصائي جديد</h3>
         <form class="form-inline" id="addSpecialistForm">
           <input type="text" id="specName" placeholder="اسم الأخصائي/ـة" required>
           <input type="email" id="specEmail" placeholder="البريد الإلكتروني" required>
@@ -153,7 +173,7 @@
           <button type="submit" class="btn-add">إضافة أخصائي</button>
         </form>
 
-        <h3 style="margin-top:25px;">قائمة الأخصائيين المعتمدين في المؤسسة</h3>
+        <h3 style="margin-top:25px;">قائمة الأخصائيين المعتمدين</h3>
         <table>
           <thead>
             <tr><th>الاسم</th><th>البريد الإلكتروني</th><th>الإجراء</th></tr>
@@ -165,7 +185,6 @@
 
   </div>
 
-  <!-- نافذة التأكيد المصممة داخل المنصة -->
   <div class="modal-overlay" id="confirmModal">
     <div class="modal-card">
       <h4 id="modalTitle">تأكيد الإجراء</h4>
@@ -181,13 +200,6 @@
     const user = JSON.parse(localStorage.getItem('user'));
     if (!user) window.location.href = 'index.html';
 
-    // دالة طلب موحدة تبعث كود المؤسسة المعزولة في الهيدر تلقائياً
-    async function fetchWithOrg(url, options = {}) {
-      if (!options.headers) options.headers = {};
-      options.headers['x-org-code'] = user.org_code;
-      return fetch(url, options);
-    }
-
     document.getElementById('userName').innerText = user.name;
     let roleText = 'أخصائي';
     if (user.role === 'admin') roleText = 'مدير النظام (الأدمن)';
@@ -196,7 +208,6 @@
 
     document.getElementById('infoName').innerText = user.name;
     document.getElementById('infoEmail').innerText = user.email;
-    document.getElementById('infoOrg').innerText = user.org_name || user.org_code;
     document.getElementById('infoRole').innerText = roleText;
 
     if (user.role === 'student') {
@@ -247,8 +258,7 @@
     async function loadData() {
       if (user.role === 'student') return;
 
-      // 1. الأخصائيين
-      const resSpec = await fetchWithOrg('/api/specialists');
+      const resSpec = await fetch('/api/specialists');
       const specs = await resSpec.json();
       
       const specTable = document.getElementById('specialistsTable');
@@ -269,8 +279,7 @@
         }
       });
 
-      // 2. الطلاب
-      const resStud = await fetchWithOrg(user.role === 'admin' ? '/api/students' : `/api/students?specialist_id=${user.id}`);
+      const resStud = await fetch(user.role === 'admin' ? '/api/students' : `/api/students?specialist_id=${user.id}`);
       const studs = await resStud.json();
       const studTable = document.getElementById('studentsTable');
       studTable.innerHTML = '';
@@ -286,9 +295,8 @@
         `;
       });
 
-      // 3. طلبات الأدمن
       if (user.role === 'admin') {
-        const resReq = await fetchWithOrg('/api/student-requests');
+        const resReq = await fetch('/api/student-requests');
         const reqs = await resReq.json();
         const reqTable = document.getElementById('requestsTable');
         reqTable.innerHTML = '';
@@ -298,6 +306,7 @@
               <td>${r.student_name}</td>
               <td>${r.age} سنة</td>
               <td>${r.phone || 'غير مسجل'}</td>
+              <td>${r.email}</td>
               <td>${r.specialist_name}</td>
               <td><button class="btn-approve" onclick="approveStudent(${r.id})">قبول وإنشاء الحساب</button></td>
             </tr>
@@ -306,7 +315,36 @@
       }
     }
 
-    // إضافة أو طلب طالب
+    // الشات بوت وتوليد التقارير بالذكاء الاصطناعي
+    async function sendAiMessage() {
+      const input = document.getElementById('chatInput');
+      const msg = input.value;
+      if (!msg) return;
+
+      const chatBox = document.getElementById('chatHistory');
+      chatBox.innerHTML += `<p><strong>أنت:</strong> ${msg}</p>`;
+      input.value = '';
+
+      const res = await fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: msg, user_role: user.role, user_id: user.id })
+      });
+      const data = await res.json();
+      chatBox.innerHTML += `<p style="color:#2980b9;"><strong>المساعد:</strong> ${data.reply}</p>`;
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    async function generateAiReport() {
+      const output = document.getElementById('reportOutput');
+      output.style.display = 'block';
+      output.innerText = 'جاري تحليل البيانات وتوليد التقرير بالذكاء الاصطناعي... ⏳';
+
+      const res = await fetch('/api/ai/generate-report', { method: 'POST' });
+      const data = await res.json();
+      output.innerText = data.report || data.message;
+    }
+
     document.getElementById('studentForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const name = document.getElementById('studName').value;
@@ -317,7 +355,7 @@
 
       if (user.role === 'admin') {
         const specialist_id = document.getElementById('studSpecialist').value || null;
-        const res = await fetchWithOrg('/api/students/direct', {
+        const res = await fetch('/api/students/direct', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({ name, age, phone, email, password, specialist_id })
@@ -325,7 +363,7 @@
         const data = await res.json();
         showAlert(data.message, data.success);
       } else {
-        const res = await fetchWithOrg('/api/student-requests', {
+        const res = await fetch('/api/student-requests', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({ student_name: name, age, phone, email, password, specialist_id: user.id })
@@ -338,21 +376,19 @@
       loadData();
     });
 
-    // قبول طلب الطالب
     async function approveStudent(id) {
-      const res = await fetchWithOrg(`/api/student-requests/${id}/approve`, { method: 'POST' });
+      const res = await fetch(`/api/student-requests/${id}/approve`, { method: 'POST' });
       const data = await res.json();
       showAlert(data.message, data.success);
       loadData();
     }
 
-    // حذف طالب
     function deleteStudent(id) {
       openConfirmModal(
         'حذف الطالب',
         'هل أنت تأكد من حذف هذا الطالب وحسابه بصفة نهائية؟',
         async () => {
-          const res = await fetchWithOrg(`/api/students/${id}`, { method: 'DELETE' });
+          const res = await fetch(`/api/students/${id}`, { method: 'DELETE' });
           const data = await res.json();
           showAlert(data.message, data.success);
           loadData();
@@ -360,13 +396,12 @@
       );
     }
 
-    // طرد أخصائي
     function deleteSpecialist(id) {
       openConfirmModal(
         'طرد الأخصائي',
-        'هل أنت تأكد من طرد هذا الأخصائي من المؤسسة؟',
+        'هل أنت تأكد من طرد هذا الأخصائي من النظام؟',
         async () => {
-          const res = await fetchWithOrg(`/api/specialists/${id}`, { method: 'DELETE' });
+          const res = await fetch(`/api/specialists/${id}`, { method: 'DELETE' });
           const data = await res.json();
           showAlert(data.message, data.success);
           loadData();
@@ -374,14 +409,13 @@
       );
     }
 
-    // إضافة أخصائي
     document.getElementById('addSpecialistForm')?.addEventListener('submit', async (e) => {
       e.preventDefault();
       const name = document.getElementById('specName').value;
       const email = document.getElementById('specEmail').value;
       const password = document.getElementById('specPass').value;
 
-      const res = await fetchWithOrg('/api/specialists', {
+      const res = await fetch('/api/specialists', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ name, email, password })
@@ -393,68 +427,5 @@
 
     loadData();
   </script>
-  <!-- المساعد الذكي والتوليد التلقائي للتقارير -->
-<div class="section-box" id="aiSection">
-  <h3>🤖 المساعد الذكي وتقارير الذكاء الاصطناعي (Gemini AI)</h3>
-  
-  <div style="display: flex; gap: 20px; flex-wrap: wrap;">
-    <!-- نافذة الشات بوت والرد الآلي -->
-    <div style="flex: 1; min-width: 280px; background: #f8f9fa; padding: 20px; border-radius: 12px;">
-      <h4>💬 الرد الآلي والمساعد اللغوي</h4>
-      <div id="chatHistory" style="height: 150px; overflow-y: auto; background: white; padding: 10px; border-radius: 8px; margin: 10px 0; border: 1px solid #ddd; font-size: 0.9rem;">
-        <p style="color: #7f8c8d;">مرحباً! أنا المساعد الذكي للمنصة، كيف أستطيع مساعدتك اليوم؟</p>
-      </div>
-      <div style="display: flex; gap: 8px;">
-        <input type="text" id="chatInput" placeholder="اسأل المساعد الذكي..." style="flex:1; padding: 8px; border-radius: 6px; border: 1px solid #ccc;">
-        <button onclick="sendAiMessage()" style="background: #3498db; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer;">إرسال</button>
-      </div>
-    </div>
-
-    <!-- توليد التقارير الذكية -->
-    <div style="flex: 1; min-width: 280px; background: #f8f9fa; padding: 20px; border-radius: 12px;">
-      <h4>📝 توليد تقرير التطور اللغوي</h4>
-      <p style="font-size: 0.85rem; color: #7f8c8d; margin-bottom: 10px;">اختر الطالب لتوليد تقرير تقييم شامل تلقائياً.</p>
-      <button onclick="generateAiReport()" style="background: #9b59b6; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 700;">توليد التقرير بالذكاء الاصطناعي ✨</button>
-      <div id="reportOutput" style="margin-top: 10px; background: white; padding: 10px; border-radius: 8px; border: 1px solid #ddd; font-size: 0.85rem; display: none; white-space: pre-wrap;"></div>
-    </div>
-  </div>
-</div>
-
-<script>
-  // إرسال سؤال للشات بوت
-  async function sendAiMessage() {
-    const input = document.getElementById('chatInput');
-    const msg = input.value;
-    if (!msg) return;
-
-    const chatBox = document.getElementById('chatHistory');
-    chatBox.innerHTML += `<p><strong>أنت:</strong> ${msg}</p>`;
-    input.value = '';
-
-    const res = await fetch('/api/ai/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: msg, user_role: user.role })
-    });
-    const data = await res.json();
-    chatBox.innerHTML += `<p style="color:#2980b9;"><strong>المساعد:</strong> ${data.reply}</p>`;
-    chatBox.scrollTop = chatBox.scrollHeight;
-  }
-
-  // توليد تقرير التطور اللغوي
-  async function generateAiReport() {
-    const output = document.getElementById('reportOutput');
-    output.style.display = 'block';
-    output.innerText = 'جاري تحليل البيانات وتوليد التقرير بالذكاء الاصطناعي... ⏳';
-
-    const res = await fetch('/api/ai/generate-report', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ student_name: 'فالح', age: 6, notes: 'تحسن ممتاز في استجابة الجلسات المرئية والتواصل البصري' })
-    });
-    const data = await res.json();
-    output.innerText = data.report;
-  }
-</script>
 </body>
 </html>
