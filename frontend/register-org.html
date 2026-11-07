@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تسجيل مؤسسة جديدة - منصة اللغة المرئية</title>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; font-family: 'Tajawal', sans-serif; margin: 0; padding: 0; }
+    body { background: linear-gradient(135deg, #eef2f3 0%, #8e9eab 100%); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
+    .card { background: white; padding: 40px; border-radius: 20px; width: 100%; max-width: 500px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); }
+    h2 { color: #2c3e50; text-align: center; margin-bottom: 20px; }
+    .form-group { margin-bottom: 15px; text-align: right; }
+    label { display: block; margin-bottom: 6px; color: #34495e; font-size: 0.9rem; }
+    input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 10px; outline: none; }
+    button { width: 100%; padding: 14px; background: #2ecc71; color: white; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; margin-top: 10px; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h2>🏢 تسجيل مؤسسة جديدة</h2>
+    <form id="orgRegForm">
+      <div class="form-group">
+        <label>اسم المؤسسة / المركز</label>
+        <input type="text" id="orgName" placeholder="مثال: مركز الأمل للتأهيل" required>
+      </div>
+      <div class="form-group">
+        <label>كود المؤسسة (بالإنجليزي)</label>
+        <input type="text" id="orgCode" placeholder="مثال: alamal-center" required>
+      </div>
+      <div class="form-group">
+        <label>اسم مدير النظام الأول</label>
+        <input type="text" id="adminName" placeholder="اسمك الكامل" required>
+      </div>
+      <div class="form-group">
+        <label>البريد الإلكتروني للإنشاء</label>
+        <input type="email" id="adminEmail" placeholder="admin@domain.com" required>
+      </div>
+      <div class="form-group">
+        <label>كلمة المرور</label>
+        <input type="password" id="adminPass" placeholder="••••••••" required>
+      </div>
+      <button type="submit">تأسيس المؤسسة وقاعدة البيانات تلقائياً</button>
+    </form>
+  </div>
+
+  <script>
+    document.getElementById('orgRegForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const body = {
+        org_name: document.getElementById('orgName').value,
+        org_code: document.getElementById('orgCode').value,
+        admin_name: document.getElementById('adminName').value,
+        admin_email: document.getElementById('adminEmail').value,
+        admin_password: document.getElementById('adminPass').value
+      };
+
+      const res = await fetch('/api/register-organization', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      alert(data.message);
+      if (data.success) window.location.href = 'index.html';
+    });
+  </script>
+</body>
+</html>

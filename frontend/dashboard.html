@@ -393,5 +393,68 @@
 
     loadData();
   </script>
+  <!-- المساعد الذكي والتوليد التلقائي للتقارير -->
+<div class="section-box" id="aiSection">
+  <h3>🤖 المساعد الذكي وتقارير الذكاء الاصطناعي (Gemini AI)</h3>
+  
+  <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+    <!-- نافذة الشات بوت والرد الآلي -->
+    <div style="flex: 1; min-width: 280px; background: #f8f9fa; padding: 20px; border-radius: 12px;">
+      <h4>💬 الرد الآلي والمساعد اللغوي</h4>
+      <div id="chatHistory" style="height: 150px; overflow-y: auto; background: white; padding: 10px; border-radius: 8px; margin: 10px 0; border: 1px solid #ddd; font-size: 0.9rem;">
+        <p style="color: #7f8c8d;">مرحباً! أنا المساعد الذكي للمنصة، كيف أستطيع مساعدتك اليوم؟</p>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <input type="text" id="chatInput" placeholder="اسأل المساعد الذكي..." style="flex:1; padding: 8px; border-radius: 6px; border: 1px solid #ccc;">
+        <button onclick="sendAiMessage()" style="background: #3498db; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer;">إرسال</button>
+      </div>
+    </div>
+
+    <!-- توليد التقارير الذكية -->
+    <div style="flex: 1; min-width: 280px; background: #f8f9fa; padding: 20px; border-radius: 12px;">
+      <h4>📝 توليد تقرير التطور اللغوي</h4>
+      <p style="font-size: 0.85rem; color: #7f8c8d; margin-bottom: 10px;">اختر الطالب لتوليد تقرير تقييم شامل تلقائياً.</p>
+      <button onclick="generateAiReport()" style="background: #9b59b6; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 700;">توليد التقرير بالذكاء الاصطناعي ✨</button>
+      <div id="reportOutput" style="margin-top: 10px; background: white; padding: 10px; border-radius: 8px; border: 1px solid #ddd; font-size: 0.85rem; display: none; white-space: pre-wrap;"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // إرسال سؤال للشات بوت
+  async function sendAiMessage() {
+    const input = document.getElementById('chatInput');
+    const msg = input.value;
+    if (!msg) return;
+
+    const chatBox = document.getElementById('chatHistory');
+    chatBox.innerHTML += `<p><strong>أنت:</strong> ${msg}</p>`;
+    input.value = '';
+
+    const res = await fetch('/api/ai/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: msg, user_role: user.role })
+    });
+    const data = await res.json();
+    chatBox.innerHTML += `<p style="color:#2980b9;"><strong>المساعد:</strong> ${data.reply}</p>`;
+    chatBox.scrollTop = chatBox.scrollHeight;
+  }
+
+  // توليد تقرير التطور اللغوي
+  async function generateAiReport() {
+    const output = document.getElementById('reportOutput');
+    output.style.display = 'block';
+    output.innerText = 'جاري تحليل البيانات وتوليد التقرير بالذكاء الاصطناعي... ⏳';
+
+    const res = await fetch('/api/ai/generate-report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ student_name: 'فالح', age: 6, notes: 'تحسن ممتاز في استجابة الجلسات المرئية والتواصل البصري' })
+    });
+    const data = await res.json();
+    output.innerText = data.report;
+  }
+</script>
 </body>
 </html>

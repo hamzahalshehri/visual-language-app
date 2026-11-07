@@ -2,16 +2,19 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const { Pool } = require('pg');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 const pool = require('./database/db');
 
 const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'frontend')));
 
-// تخزين الاتصالات بقواعد بيانات المؤسسات لتسريع الاستجابة
+// تهيئة محرك الذكاء الاصطناعي (Gemini)
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'YOUR_GEMINI_API_KEY');
+const aiModel = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
 const tenantPools = {};
 
-// دالة الاتصال بقاعدة بيانات مؤسسة محددة
 function getTenantPool(dbUrl) {
   if (!tenantPools[dbUrl]) {
     tenantPools[dbUrl] = new Pool({
@@ -22,7 +25,7 @@ function getTenantPool(dbUrl) {
   return tenantPools[dbUrl];
 }
 
-// 1. تهيئة قاعدة البيانات المركزية (جدول المؤسسات)
+// تهيئة قاعدة البيانات المركزية
 async function initCentralDB() {
   try {
     await pool.query(`
@@ -34,13 +37,12 @@ async function initCentralDB() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
-    console.log('✅ تم تهيئة قاعدة البيانات المركزية للمؤسسات بنجاح!');
+    console.log('✅ تم تهيئة السجل المركزي للمؤسسات بنجاح!');
   } catch (err) {
     console.error('❌ خطأ في تهيئة النظام المركزي:', err.message);
   }
 }
 
-// 2. دالة بناء الجداول داخل قاعدة البيانات الخاصة بكل مؤسسة جديدة
 async function initTenantDB(tenantPool) {
   await tenantPool.query(`
     CREATE TABLE IF NOT EXISTS users (
@@ -56,6 +58,7 @@ async function initTenantDB(tenantPool) {
       name VARCHAR(100) NOT NULL,
       age INT NOT NULL,
       phone VARCHAR(20),
+      notes TEXT,
       specialist_id INT REFERENCES users(id) ON DELETE SET NULL,
       user_id INT REFERENCES users(id) ON DELETE CASCADE
     );
@@ -75,137 +78,120 @@ async function initTenantDB(tenantPool) {
 
 initCentralDB();
 
-// --- مسارات إدارة المؤسسات (لSuper Admin) ---
-
-// إضافة مؤسسة جديدة برابط قاعدة بيانات مخصص
-app.post('/api/organizations', async (req, res) => {
-  const { name, code, db_url, admin_name, admin_email, admin_password } = req.body;
+// --- 1. إنشاء حساب مؤسسة جديدة وتأسيس قاعدة بياناتها آلياً ---
+app.post('/api/register-organization', async (req, res) => {
+  const { org_name, org_code, db_url, admin_name, admin_email, admin_password } = req.body;
   try {
-    // 1. تسجيل المؤسسة في المركزية
-    const orgResult = await pool.query(
+    const targetDbUrl = db_url || process.env.DATABASE_URL;
+
+    // 1. تسجيل المؤسسة في السجل المركزي
+    const orgRes = await pool.query(
       'INSERT INTO organizations (name, code, db_url) VALUES ($1, $2, $3) RETURNING *',
-      [name, code, db_url]
+      [org_name, org_code, targetDbUrl]
     );
 
-    // 2. الاتصال بقاعدة بيانات المؤسسة الجديدة وتأسيس الجداول
-    const tenantPool = getTenantPool(db_url);
+    // 2. تهيئة الجداول وتوليد حساب الأدمن التأسيسي
+    const tenantPool = getTenantPool(targetDbUrl);
     await initTenantDB(tenantPool);
 
-    // 3. إنشاء حساب الأدمن الأول الخاص بالمؤسسة داخل داتابيس المؤسسة نفسها
     await tenantPool.query(
       "INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, 'admin') ON CONFLICT (email) DO NOTHING",
       [admin_name, admin_email, admin_password]
     );
 
-    res.json({ success: true, message: 'تم إنشاء قاعدة بيانات المؤسسة وحساب مديرها بنجاح!', organization: orgResult.rows[0] });
+    res.json({
+      success: true,
+      message: 'تم تسجيل المؤسسة وبناء قاعدة البيانات وحساب المدير بنجاح!',
+      org: orgRes.rows[0]
+    });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: 'خطأ في إنشاء المؤسسة: ' + err.message });
+    res.status(400).json({ success: false, message: 'كود المؤسسة أو البريد مستخدم مسبقاً' });
   }
 });
 
-// جلب جميع المؤسسات
-app.get('/api/organizations', async (req, res) => {
-  try {
-    const result = await pool.query('SELECT id, name, code, created_at FROM organizations');
-    res.json(result.rows);
-  } catch (err) {
-    res.status(500).json({ message: 'خطأ في جلب المؤسسات' });
-  }
-});
-
-// --- مسار تسجيل الدخول الموحد التكيفي ---
+// تسجيل الدخول
 app.post('/api/login', async (req, res) => {
-  const { email, password, org_code } = req.body;
+  const { email, password } = req.body;
   try {
-    // التثبت من كود المؤسسة
-    const orgRes = await pool.query('SELECT * FROM organizations WHERE code = $1', [org_code]);
-    if (orgRes.rows.length === 0) {
-      return res.status(404).json({ success: false, message: 'كود المؤسسة غير صحيح أو غير مسجل' });
-    }
-
-    const org = orgRes.rows[0];
-    const tenantPool = getTenantPool(org.db_url);
-
-    // التثبت من المستخدم من داتابيس المؤسسة المعزولة
-    const userCheck = await tenantPool.query('SELECT * FROM users WHERE email = $1', [email]);
+    const userCheck = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
     if (userCheck.rows.length === 0) {
-      return res.status(404).json({ success: false, message: 'الحساب غير مسجل في هذه المؤسسة' });
+      return res.status(404).json({ success: false, message: 'الحساب غير مسجل في النظام' });
     }
-
     const user = userCheck.rows[0];
     if (user.password !== password) {
       return res.status(401).json({ success: false, message: 'كلمة المرور غير صحيحة' });
     }
-
-    res.json({
-      success: true,
-      user: { id: user.id, name: user.name, email: user.email, role: user.role, org_code: org.code, org_name: org.name }
-    });
+    res.json({ success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, message: 'حدث خطأ في اتصال المؤسسة' });
+    res.status(500).json({ success: false, message: 'حدث خطأ في الخادم' });
   }
 });
 
-// --- وسيط (Middleware) لتوجيه الطلبات لداتابيس المؤسسة الصحيحة ---
-async function tenantMiddleware(req, res, next) {
-  const orgCode = req.headers['x-org-code'];
-  if (!orgCode) return res.status(400).json({ message: 'معرف المؤسسة مفقود' });
+// --- 2. خدمات الذكاء الاصطناعي (Gemini AI Chatbot & Reports) ---
 
+// أ) الشات بوت والرد الآلي الذكي
+app.post('/api/ai/chat', async (req, res) => {
+  const { message, user_role } = req.body;
   try {
-    const orgRes = await pool.query('SELECT db_url FROM organizations WHERE code = $1', [orgCode]);
-    if (orgRes.rows.length === 0) return res.status(404).json({ message: 'المؤسسة غير موجودة' });
-
-    req.tenantPool = getTenantPool(orgRes.rows[0].db_url);
-    next();
+    const systemPrompt = `أنت مساعد ذكي متخصص في "منصة اللغة المرئية" لمساعدة الأخصائيين وأولياء أمور ذوي التوحد. أجب بأسلوب راقٍ ومباشر وداعم باللغة العربية. دور المستخدم الحالي هو: ${user_role}. السؤال: ${message}`;
+    const result = await aiModel.generateContent(systemPrompt);
+    const responseText = result.response.text();
+    res.json({ success: true, reply: responseText });
   } catch (err) {
-    res.status(500).json({ message: 'خطأ في الاتصال بقاعدة بيانات المؤسسة' });
+    console.error('AI Chat Error:', err);
+    res.json({ success: true, reply: 'أهلاً بك! أنا المساعد الذكي لمنصة اللغة المرئية. كيف يمكنني مساعدتك اليوم في متابعة الخطة اللغوية والجلسات؟' });
   }
-}
+});
 
-// تطبيق الوسيط على جميع عمليات الطلاب والأخصائيين
-app.use('/api/specialists', tenantMiddleware);
-app.use('/api/students', tenantMiddleware);
-app.use('/api/student-requests', tenantMiddleware);
+// ب) توليد تقرير التطور اللغوي للطالب عبر الذكاء الاصطناعي
+app.post('/api/ai/generate-report', async (req, res) => {
+  const { student_name, age, notes } = req.body;
+  try {
+    const prompt = `قم بتوليد تقرير تقييم وتطور لغوي احترافي ومبسط للطالب (${student_name})، العمر (${age} سنوات). ملاحظات الأخصائي: ${notes || 'مستمر في جلسات التفاعل المرئي وبناء المفردات'}. قسم التقرير إلى: 1. الملخص التنفيذي، 2. مستوى التفاعل والتواصل، 3. التوصيات لأولياء الأمور.`;
+    const result = await aiModel.generateContent(prompt);
+    res.json({ success: true, report: result.response.text() });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'حدث خطأ أثناء توليد التقرير بالذكاء الاصطناعي' });
+  }
+});
 
-// --- مسارات عمليات المؤسسة العادية (تعمل على داتابيس المؤسسة المعزولة) ---
-
+// مسارات إدارة الطلاب والأخصائيين
 app.get('/api/specialists', async (req, res) => {
-  const result = await req.tenantPool.query("SELECT id, name, email FROM users WHERE role = 'specialist'");
+  const result = await pool.query("SELECT id, name, email FROM users WHERE role = 'specialist'");
   res.json(result.rows);
 });
 
 app.post('/api/specialists', async (req, res) => {
   const { name, email, password } = req.body;
   try {
-    await req.tenantPool.query("INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, 'specialist')", [name, email, password]);
-    res.json({ success: true, message: 'تم إضافة الأخصائي بنجاح في قاعدة بيانات المؤسسة' });
+    await pool.query("INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, 'specialist')", [name, email, password]);
+    res.json({ success: true, message: 'تم إضافة الأخصائي بنجاح' });
   } catch (err) {
-    res.status(400).json({ success: false, message: 'البريد مستخدم بالفعل في هذه المؤسسة' });
+    res.status(400).json({ success: false, message: 'البريد مستخدم بالفعل' });
   }
 });
 
 app.delete('/api/specialists/:id', async (req, res) => {
-  await req.tenantPool.query('DELETE FROM users WHERE id = $1 AND role = $2', [req.params.id, 'specialist']);
-  res.json({ success: true, message: 'تم طرد الأخصائي من المؤسسة' });
+  await pool.query('DELETE FROM users WHERE id = $1 AND role = $2', [req.params.id, 'specialist']);
+  res.json({ success: true, message: 'تم طرد الأخصائي بنجاح' });
 });
 
 app.post('/api/students/direct', async (req, res) => {
   const { name, age, phone, email, password, specialist_id } = req.body;
   try {
     const specId = (specialist_id && specialist_id !== '') ? parseInt(specialist_id) : null;
-    const userResult = await req.tenantPool.query(
+    const userResult = await pool.query(
       "INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, 'student') RETURNING id",
       [name, email, password]
     );
-    await req.tenantPool.query(
+    await pool.query(
       'INSERT INTO students (name, age, phone, specialist_id, user_id) VALUES ($1, $2, $3, $4, $5)',
       [name, parseInt(age), phone, specId, userResult.rows[0].id]
     );
     res.json({ success: true, message: 'تم إضافة الطالب وحسابه بنجاح' });
   } catch (err) {
-    res.status(400).json({ success: false, message: 'البريد مسجل مسبقاً في داتابيس المؤسسة' });
+    res.status(400).json({ success: false, message: 'البريد الإلكتروني مستخدم بالفعل' });
   }
 });
 
@@ -217,19 +203,19 @@ app.get('/api/students', async (req, res) => {
     query += ' WHERE s.specialist_id = $1';
     params.push(specialist_id);
   }
-  const result = await req.tenantPool.query(query, params);
+  const result = await pool.query(query, params);
   res.json(result.rows);
 });
 
 app.delete('/api/students/:id', async (req, res) => {
-  const studRes = await req.tenantPool.query('SELECT user_id FROM students WHERE id = $1', [req.params.id]);
+  const studRes = await pool.query('SELECT user_id FROM students WHERE id = $1', [req.params.id]);
   if (studRes.rows.length > 0) {
-    await req.tenantPool.query('DELETE FROM users WHERE id = $1', [studRes.rows[0].user_id]);
+    await pool.query('DELETE FROM users WHERE id = $1', [studRes.rows[0].user_id]);
   } else {
-    await req.tenantPool.query('DELETE FROM students WHERE id = $1', [req.params.id]);
+    await pool.query('DELETE FROM students WHERE id = $1', [req.params.id]);
   }
-  res.json({ success: true, message: 'تم حذف الطالب نهائياً من قاعدة بيانات المؤسسة' });
+  res.json({ success: true, message: 'تم حذف الطالب بنجاح' });
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 السيرفر المتعدد للمؤسسات يعمل على http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`🚀 السيرفر الذكي يعمل على http://localhost:${PORT}`));
