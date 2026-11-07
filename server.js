@@ -283,6 +283,26 @@ app.get('/api/students', async (req, res) => {
   }
 });
 
+
+app.post('/api/login', async (req, res) => {
+  const { email, password, org_code } = req.body;
+  try {
+    const userCheck = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+    if (userCheck.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'الحساب غير مسجل في النظام' });
+    }
+    const user = userCheck.rows[0];
+    if (user.password !== password) {
+      return res.status(401).json({ success: false, message: 'كلمة المرور غير صحيحة' });
+    }
+    res.json({ success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role, org_code: org_code || 'default' } });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'حدث خطأ في الخادم' });
+  }
+});
+
+
+
 app.delete('/api/students/:id', async (req, res) => {
   try {
     const studRes = await pool.query('SELECT user_id FROM students WHERE id = $1', [req.params.id]);
